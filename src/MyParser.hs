@@ -4,13 +4,13 @@ module MyParser (myParser1) where
 
 import Control.Applicative ((<$>), (<*>), pure, liftA2, Const(..))
 import Control.Monad.State(StateT(..),get,put,evalStateT,execStateT)
-import Control.Monad(mplus,mzero, MonadPlus, guard)
+import Control.Monad(mplus,mzero, MonadPlus, guard, msum)
 import Control.Monad.Trans(lift)
 import Control.Monad.Identity(Identity(..))
-import Data.Char (isLetter)
+import Data.Char (isLetter, isDigit)
 
 
-pop :: (MonadPlus m) => StateT [a] m a
+pop :: (Monad m) => StateT [a] m a
 pop = do
   (a:as) <- get
   put as
@@ -35,12 +35,11 @@ fstPos, lastPos :: (MonadPlus m) => StateT [c] [] a -> StateT [c] m a
 fstPos = mostPos head -- first of possibilities
 lastPos = mostPos last -- last of possibilities
 
-string :: (Eq c, MonadPlus m) => [c] -> StateT [c] m [c]
-string [] = return []
-string (c:cs) = do
-  char c
-  string cs
-  return $ c:cs
+string ::  (MonadPlus m, Eq c) => [c] -> StateT [c] m [c]
+string = sequence . map char
+
+bracket :: (MonadPlus m, Eq c) => [c] -> StateT [c] m c
+bracket = msum . map char
 
 -- 最短マッチ、最長マッチ
 many :: (Applicative f, MonadPlus m) => StateT [c] m (f a) -> StateT [c] m (f [a])
@@ -56,11 +55,13 @@ manyStr = fmap getConst . many . fmap Const
 manyChar :: (MonadPlus m) => StateT [c] m a -> StateT [c] m [a]
 manyChar = fmap runIdentity . many . fmap Identity
 
-singleton :: (MonadPlus m) => StateT [c] m a -> StateT [c] m [a]
+singleton :: (Monad m) => StateT [c] m a -> StateT [c] m [a]
 singleton = fmap (:[])
+
+parserEx :: (MonadPlus m) => StateT String m String
+parserEx = concat <$> sequence [string "foo" `mplus` string "bar", string "baz"]
 
 myParser1 :: IO ()
 myParser1 = do
-  let parserEx = manyStr $ string "ab" `mplus` string "a"
-  let (v::Maybe String) = evalStateT parserEx "aaabbb22"
+  let (v::Maybe String) = evalStateT parserEx "barbaraaaaa"
   print v
