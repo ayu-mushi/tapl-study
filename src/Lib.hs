@@ -2,7 +2,7 @@ module Lib
     ( someFunc
     ) where
 
-import Parser
+import MyParser
 import Control.Monad.Except(ExceptT, liftEither, runExceptT)
 import Control.Monad.Writer(Writer, tell, runWriter)
 import Control.Monad.Trans(lift)
@@ -104,4 +104,4 @@ someFunc = do
   putStrLn log
   putStrLn $ "Result: " ++ show v2
 
-  parser1
+  myParser1
